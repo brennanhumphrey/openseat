@@ -6,10 +6,12 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/resend/resend-go/v2"
 )
 
 const timetableUrl = "https://selfservice.banner.vt.edu/ssb/HZSKVTSC.P_ProcRequest"
@@ -19,12 +21,13 @@ type Config struct {
 	CheckInterval time.Duration
 	Campus        string
 	Term          string
+	Email         string
 }
 
 func parseFlags() Config {
 	crnPtr := flag.String("crn", "", "The CRN of the course section to monitor (required)")
 	waitPtr := flag.Int("wait", 30, "Seconds to wait between checks")
-
+	emailPtr := flag.String("email", "", "Email for notification")
 	flag.Parse()
 
 	if *crnPtr == "" {
@@ -36,6 +39,7 @@ func parseFlags() Config {
 		CheckInterval: time.Duration(*waitPtr) * time.Second,
 		Campus:        "0",      // Blacksburg
 		Term:          "202601", // Spring 2026
+		Email:         *emailPtr,
 	}
 }
 
@@ -117,6 +121,26 @@ func getCourseName(cfg Config) (string, error) {
 	return courseName, nil
 }
 
+func sendEmail(to, subject, body string) error {
+	apiKey := os.Getenv("RESEND_API_KEY")
+	if apiKey == "" {
+		return fmt.Errorf("RESEND_API_KEY not set")
+	}
+
+	client := resend.NewClient(apiKey)
+
+	params := &resend.SendEmailRequest{
+		From:    "onboarding@resend.dev",
+		To:      []string{to},
+		Subject: subject,
+		Text:    body,
+		// Html: "<p>Hello, World!</p>",
+	}
+
+	_, err := client.Emails.Send(params)
+	return err
+}
+
 func main() {
 	cfg := parseFlags()
 
@@ -138,8 +162,20 @@ func main() {
 		if err != nil {
 			fmt.Printf("\r✗ [%s] Error: %v                           ", checkTime, err)
 		} else if open {
-			fmt.Printf("\r\nOPEN SEAT FOUND in %s (CRN: %s)!\n", courseName, cfg.CRN)
+			msg := fmt.Sprintf("OPEN SEAT in %s (CRN: %s)!", courseName, cfg.CRN)
+			fmt.Printf("\r\n%s\n", msg)
 			// TODO: add notification (email, sms, etc.)
+
+			if cfg.Email != "" {
+				fmt.Println("Sending email notification...")
+				err := sendEmail(cfg.Email, "VT Course Section Open!", msg)
+				if err != nil {
+					fmt.Printf("Failed to send email: %v\n", err)
+				} else {
+					fmt.Printf("Email sent to %s\n", cfg.Email)
+				}
+			}
+
 			return
 		}
 
