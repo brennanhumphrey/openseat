@@ -30,3 +30,6 @@ vendor/
 
 # Debug
 __debug_bin*
+
+# Config file
+config.json
