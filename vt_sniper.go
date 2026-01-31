@@ -15,86 +15,10 @@ import (
 	"github.com/resend/resend-go/v2"
 )
 
+// Note: strings is still used by checkSectionOpen and getCourseName
+
 // DefaultTimetableURL is the Virginia Tech timetable endpoint for course searches
 const DefaultTimetableURL = "https://selfservice.banner.vt.edu/ssb/HZSKVTSC.P_ProcRequest"
-
-// ANSI color codes
-const (
-	Reset      = "\033[0m"
-	Bold       = "\033[1m"
-	Dim        = "\033[2m"
-	Red        = "\033[31m"
-	Green      = "\033[32m"
-	Yellow     = "\033[33m"
-	Blue       = "\033[34m"
-	Magenta    = "\033[35m"
-	Cyan       = "\033[36m"
-	White      = "\033[37m"
-	BoldGreen  = "\033[1;32m"
-	BoldCyan   = "\033[1;36m"
-	BoldYellow = "\033[1;33m"
-	BoldRed    = "\033[1;31m"
-	BoldWhite  = "\033[1;37m"
-)
-
-// Nerd Font icons (requires a Nerd Font to display correctly)
-const (
-	IconSearch   = "\uf002" //  (nf-fa-search)
-	IconEmail    = "\uf0e0" //  (nf-fa-envelope)
-	IconClock    = "\uf017" //  (nf-fa-clock)
-	IconCheck    = "\uf00c" //  (nf-fa-check)
-	IconX        = "\uf00d" //  (nf-fa-times)
-	IconBook     = "\uf02d" //  (nf-fa-book)
-	IconTarget   = "\uf140" //  (nf-fa-crosshairs)
-	IconBell     = "\uf0f3" //  (nf-fa-bell)
-	IconArrow    = "\uf061" //  (nf-fa-arrow_right)
-	IconCalendar = "\uf073" //  (nf-fa-calendar)
-	IconGrad     = "\uf19d" //  (nf-fa-graduation_cap)
-)
-
-// ASCII art banner
-const banner = `
-%s██╗   ██╗████████╗    ███████╗███╗   ██╗██╗██████╗ ███████╗██████╗ %s
-%s██║   ██║╚══██╔══╝    ██╔════╝████╗  ██║██║██╔══██╗██╔════╝██╔══██╗%s
-%s██║   ██║   ██║       ███████╗██╔██╗ ██║██║██████╔╝█████╗  ██████╔╝%s
-%s╚██╗ ██╔╝   ██║       ╚════██║██║╚██╗██║██║██╔═══╝ ██╔══╝  ██╔══██╗%s
-%s ╚████╔╝    ██║       ███████║██║ ╚████║██║██║     ███████╗██║  ██║%s
-%s  ╚═══╝     ╚═╝       ╚══════╝╚═╝  ╚═══╝╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝%s
-`
-
-func printBanner() {
-	fmt.Printf(banner,
-		BoldCyan, Reset,
-		BoldCyan, Reset,
-		Cyan, Reset,
-		Cyan, Reset,
-		Blue, Reset,
-		Blue, Reset,
-	)
-	fmt.Printf("%s%s  Virginia Tech Course Availability Monitor%s\n\n", Dim, IconGrad, Reset)
-}
-
-func truncateEmail(email string, maxLen int) string {
-	if len(email) <= maxLen {
-		return email
-	}
-	return email[:maxLen-3] + "..."
-}
-
-// Box drawing helpers (open-right style to avoid alignment issues with variable-width icons)
-const boxWidth = 50
-
-func boxTop(color string) string {
-	return fmt.Sprintf("%s╭%s%s", color, strings.Repeat("─", boxWidth), Reset)
-}
-
-func boxBottom(color string) string {
-	return fmt.Sprintf("%s╰%s%s", color, strings.Repeat("─", boxWidth), Reset)
-}
-
-func boxLine(color string, content string) string {
-	return fmt.Sprintf("%s│%s %s", color, Reset, content)
-}
 
 // ===================================
 // Interfaces for dependency injection
@@ -323,41 +247,32 @@ func Run(opts RunOptions) error {
 		emailSender = &ResendEmailSender{APIKey: os.Getenv("RESEND_API_KEY")}
 	}
 
-	// Print banner
-	printBanner()
+	// Display UI
+	PrintBanner()
+	PrintConfigBox(len(cfg.CRNs), cfg.Email, cfg.CheckInterval, cfg.Term)
 
-	// Print configuration summary in a box
-	fmt.Println(boxTop(Dim))
-	fmt.Println(boxLine(Dim, fmt.Sprintf("%s%s  Monitoring %s%d CRNs%s", Cyan, IconTarget, BoldWhite, len(cfg.CRNs), Reset)))
-	if cfg.Email != "" {
-		fmt.Println(boxLine(Dim, fmt.Sprintf("%s%s  %s%s%s", Magenta, IconEmail, White, truncateEmail(cfg.Email, 35), Reset)))
-	}
-	fmt.Println(boxLine(Dim, fmt.Sprintf("%s%s  Interval: %s%ds%s  %s%s  Term: %s%s%s", Yellow, IconClock, BoldWhite, cfg.CheckInterval, Reset, Cyan, IconCalendar, BoldWhite, cfg.Term, Reset)))
-	fmt.Println(boxBottom(Dim))
-	fmt.Println()
-
-	// initialize course statuses - filter out invalid CRNs
-	fmt.Printf("%s%s  Fetching course information...%s\n\n", Dim, IconSearch, Reset)
+	// Initialize course statuses - filter out invalid CRNs
+	PrintFetchingHeader()
 	var courses []CourseStatus
 	for _, crn := range cfg.CRNs {
 		name, err := cfg.getCourseName(crn)
 		if err != nil {
-			fmt.Printf("  %s%s%s %s%s%s: %snot found, skipping%s\n", Red, IconX, Reset, Dim, crn, Reset, Red, Reset)
+			PrintCourseNotFound(crn)
 			continue
 		}
 		courses = append(courses, CourseStatus{CRN: crn, Name: name, Found: false})
-		fmt.Printf("  %s%s%s %s%s%s %s▸%s %s\n", Green, IconCheck, Reset, Cyan, crn, Reset, Dim, Reset, name)
+		PrintCourseFound(crn, name)
 	}
 
 	if len(courses) == 0 {
 		return fmt.Errorf("no valid CRNs to monitor")
 	}
 
-	fmt.Printf("\n%s────────────────────────────────────────────────────%s\n\n", Dim, Reset)
+	PrintDivider()
 
+	// Main monitoring loop
 	remaining := len(courses)
 	interval := time.Duration(cfg.CheckInterval) * time.Second
-	spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
 	for attempt := 1; ; attempt++ {
 		checkTime := time.Now().Format("15:04:05")
@@ -367,13 +282,11 @@ func Run(opts RunOptions) error {
 				continue
 			}
 
-			fmt.Printf("\r%s%s%s %sAttempt #%d%s %s│%s Checking %s%s%s...                              ",
-				Cyan, spinner[attempt%len(spinner)], Reset, Bold, attempt, Reset, Dim, Reset, Cyan, courses[i].CRN, Reset)
+			PrintCheckingStatus(attempt, attempt, courses[i].CRN)
 
 			open, err := cfg.checkSectionOpen(courses[i].CRN)
 			if err != nil {
-				fmt.Printf("\r%s%s%s %s[%s]%s Error checking %s: %v\n",
-					Red, IconX, Reset, Dim, checkTime, Reset, courses[i].CRN, err)
+				PrintCheckError(checkTime, courses[i].CRN, err)
 				continue
 			}
 
@@ -381,18 +294,11 @@ func Run(opts RunOptions) error {
 				courses[i].Found = true
 				remaining--
 
-				// Clear line and print success
-				fmt.Printf("\r%s\r", strings.Repeat(" ", 80))
-				fmt.Println()
-				fmt.Println(boxTop(Green))
-				fmt.Println(boxLine(Green, fmt.Sprintf("%s%s  SEAT AVAILABLE!%s", BoldGreen, IconCheck, Reset)))
-				fmt.Println(boxLine(Green, fmt.Sprintf("  %s%s%s", White, courses[i].Name, Reset)))
-				fmt.Println(boxLine(Green, fmt.Sprintf("  %sCRN: %s%s", Dim, courses[i].CRN, Reset)))
-				fmt.Println(boxBottom(Green))
+				PrintSeatAvailable(courses[i].Name, courses[i].CRN)
 
 				if cfg.Email != "" {
 					sendEmail(cfg.Email, "VT Course Section Open!", fmt.Sprintf("OPEN SEAT: %s (CRN: %s)", courses[i].Name, courses[i].CRN))
-					fmt.Printf("  %s%s%s %sNotification sent to %s%s\n\n", Magenta, IconEmail, Reset, Dim, cfg.Email, Reset)
+					PrintEmailSent(cfg.Email)
 				}
 			}
 
@@ -400,7 +306,7 @@ func Run(opts RunOptions) error {
 		}
 
 		if remaining == 0 {
-			fmt.Printf("\n%s%s  All courses found! Exiting...%s\n", BoldGreen, IconCheck, Reset)
+			PrintAllCoursesFound()
 			return nil
 		}
 
@@ -410,15 +316,7 @@ func Run(opts RunOptions) error {
 		for time.Now().Before(waitUntil) {
 			timeLeft := time.Until(waitUntil).Round(time.Second)
 			found := len(courses) - remaining
-			fmt.Printf("\r%s%s%s %sAttempt #%d%s %s│%s Found: %s%d%s/%s%d%s %s│%s Next: %s%v%s %s[%s]%s          ",
-				Cyan, spinner[i%len(spinner)], Reset,
-				Bold, attempt, Reset,
-				Dim, Reset,
-				Green, found, Reset,
-				Dim, len(courses), Reset,
-				Dim, Reset,
-				Yellow, timeLeft, Reset,
-				Dim, checkTime, Reset)
+			PrintWaitingStatus(i, attempt, found, len(courses), timeLeft.String(), checkTime)
 			time.Sleep(100 * time.Millisecond)
 			i++
 		}
