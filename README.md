@@ -2,6 +2,10 @@
 
 A command-line tool for monitoring Virginia Tech course section availability and receiving instant email notifications when seats open up.
 
+<p align="center">
+    <img src="assets/demo.gif" width="600" alt="VT Sniper Demo">
+</p>
+
 ## Overview
 
 VT Sniper automates the tedious process of repeatedly checking the Virginia Tech course registration system for available seats. It monitors one or more Course Reference Numbers (CRNs) and sends you an email notification the moment a seat becomes available in your desired class.
@@ -15,10 +19,6 @@ VT Sniper automates the tedious process of repeatedly checking the Virginia Tech
 - **Configurable Polling** - Adjustable check interval (default: 30 seconds)
 - **Real-Time Status Display** - Beautiful terminal UI with live progress updates
 - **Cross-Platform** - Works on macOS, Linux, and Windows
-
-<p align="center">
-    <img src="assets/demo.gif" width="600" alt="VT Sniper Demo">
-</p>
 
 ## Prerequisites
 
