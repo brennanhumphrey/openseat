@@ -1,4 +1,4 @@
-module github.com/brennanhumphrey/vt-sniper
+module github.com/brennanhumphrey/openseat
 
 go 1.25.6
 

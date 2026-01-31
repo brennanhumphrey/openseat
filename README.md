@@ -1,16 +1,16 @@
-# VT Sniper
+# OpenSeat
 
 A command-line tool for monitoring Virginia Tech course section availability and receiving instant email notifications when seats open up.
 
 <p align="center">
-    <img src="assets/demo.gif" width="600" alt="VT Sniper Demo">
+    <img src="assets/demo.gif" width="600" alt="OpenSeat Demo">
 </p>
 
 > **Note:** For the best visual experience, use a terminal with a [Nerd Font](https://www.nerdfonts.com/) installed (e.g., FiraCode Nerd Font, JetBrains Mono Nerd Font). The tool will still work without Nerd Fonts, but icons may not display correctly.
 
 ## Overview
 
-VT Sniper automates the tedious process of repeatedly checking the Virginia Tech course registration system for available seats. It monitors one or more Course Reference Numbers (CRNs) and sends you an email notification the moment a seat becomes available in your desired class.
+OpenSeat automates the tedious process of repeatedly checking the Virginia Tech course registration system for available seats. It monitors one or more Course Reference Numbers (CRNs) and sends you an email notification the moment a seat becomes available in your desired class.
 
 ## Features
 
@@ -34,11 +34,11 @@ VT Sniper automates the tedious process of repeatedly checking the Virginia Tech
 
 ```bash
 # Clone the repository
-git clone https://github.com/brennanhumphrey/vt-sniper.git
-cd vt-sniper
+git clone https://github.com/brennanhumphrey/openseat.git
+cd openseat
 
 # Build the binary
-go build -o vt-sniper
+go build -o openseat
 
 # Or install directly
 go install
@@ -116,36 +116,36 @@ source ~/.zshrc
 
 ```bash
 # Run the monitor
-./vt-sniper
+./openseat
 ```
 
 ### Tips for Reliable Monitoring
 
-To ensure VT Sniper runs continuously without interruption:
+To ensure OpenSeat runs continuously without interruption:
 
 **Keep it running when you close the terminal:**
 
 ```bash
 # Using nohup (output goes to nohup.out)
-nohup ./vt-sniper &
+nohup ./openseat &
 
 # Using tmux (recommended - lets you reattach later)
-tmux new -s sniper
-./vt-sniper
+tmux new -s openseat
+./openseat
 # Press Ctrl+B, then D to detach
-# Reattach later with: tmux attach -t sniper
+# Reattach later with: tmux attach -t openseat
 
 # Using screen
-screen -S sniper
-./vt-sniper
+screen -S openseat
+./openseat
 # Press Ctrl+A, then D to detach
-# Reattach later with: screen -r sniper
+# Reattach later with: screen -r openseat
 ```
 
 **Prevent your computer from sleeping:**
 
-- **macOS:** Use `caffeinate -i ./vt-sniper` to prevent sleep while running
-- **Linux:** Disable sleep in power settings or use `systemd-inhibit ./vt-sniper`
+- **macOS:** Use `caffeinate -i ./openseat` to prevent sleep while running
+- **Linux:** Disable sleep in power settings or use `systemd-inhibit ./openseat`
 - **Windows:** Adjust power settings to prevent sleep when plugged in
 
 **For 24/7 monitoring:**
@@ -156,24 +156,24 @@ screen -S sniper
 
 **Stopping background processes:**
 
-> ⚠️ If you use `nohup` or detach from `tmux`/`screen`, the process keeps running in the background. Don't forget to stop it when you're done!
+> If you use `nohup` or detach from `tmux`/`screen`, the process keeps running in the background. Don't forget to stop it when you're done!
 
 ```bash
 # Find the process
-ps aux | grep vt-sniper
+ps aux | grep openseat
 
 # Kill it by PID
 kill <PID>
 
 # Or kill all instances
-pkill vt-sniper
+pkill openseat
 
 # If using tmux
-tmux attach -t sniper
+tmux attach -t openseat
 # Then press Ctrl+C to stop, and type 'exit' to close the session
 
 # If using screen
-screen -r sniper
+screen -r openseat
 # Then press Ctrl+C to stop, and type 'exit' to close the session
 ```
 
@@ -198,11 +198,12 @@ The tool queries Virginia Tech's Banner self-service system and parses the HTML 
 ### Project Structure
 
 ```
-vt-sniper-go/
+openseat/
 ├── main.go           # Application entry point
-├── vt_sniper.go      # Core monitoring logic
+├── openseat.go       # Core monitoring logic
 ├── ui.go             # Terminal UI (colors, icons, formatting)
-├── vt_sniper_test.go # Unit tests
+├── demo.go           # Demo mode for recording GIFs
+├── openseat_test.go  # Unit tests
 ├── config.json       # Configuration file (create this)
 ├── go.mod            # Go module definition
 ├── go.sum            # Dependency checksums

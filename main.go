@@ -1,5 +1,5 @@
-// Package main implements a CLI tool for monitoring Virginia Tech course sections
-// and notifying users when seats become available.
+// Package main implements OpenSeat, a CLI tool for monitoring Virginia Tech
+// course sections and notifying users when seats become available.
 package main
 
 import (
