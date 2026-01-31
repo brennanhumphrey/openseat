@@ -30,6 +30,7 @@ type Config struct {
 	CheckInterval int      `json:"checkInterval"` // Time between availability checks
 	Term          string   `json:"term"`          // Term code (e.g., 202601 = Spring 2026)
 	Campus        string   `json:"campus"`        // Campus code (0 = Blacksburg)
+	BaseURL       string   `json:"baseUrl"`       // Optional, defaults to timetableUrl
 }
 
 type CourseStatus struct {
@@ -65,6 +66,13 @@ func loadConfig(path string) (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func (c Config) getBaseURL() string {
+	if c.BaseURL != "" {
+		return c.BaseURL
+	}
+	return timetableUrl
 }
 
 // buildPayload constructs the form data for a timetable search request.
@@ -123,7 +131,7 @@ func fetchDocument(targetUrl string, payload url.Values) (*goquery.Document, err
 // Returns true if the section appears in open-only search results.
 func (c Config) checkSectionOpen(crn string) (bool, error) {
 	payload := c.buildPayload(crn, true)
-	doc, err := fetchDocument(timetableUrl, payload)
+	doc, err := fetchDocument(c.getBaseURL(), payload)
 	if err != nil {
 		return false, err
 	}
