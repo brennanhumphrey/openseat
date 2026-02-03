@@ -200,32 +200,6 @@ func (c Config) getCourseName(crn string) (string, error) {
 	return courseName, nil
 }
 
-// =================================
-// Notifications
-// =================================
-
-// sendEmail sends a notification email using the Resend API.
-// Requires RESEND_API_KEY environment varialbe to be set.
-func sendEmail(to, subject, body string) error {
-	apiKey := os.Getenv("RESEND_API_KEY")
-	if apiKey == "" {
-		return fmt.Errorf("RESEND_API_KEY not set")
-	}
-
-	client := resend.NewClient(apiKey)
-
-	params := &resend.SendEmailRequest{
-		From:    "onboarding@resend.dev",
-		To:      []string{to},
-		Subject: subject,
-		Text:    body,
-		// Html: "<p>Hello, World!</p>",
-	}
-
-	_, err := client.Emails.Send(params)
-	return err
-}
-
 // ===================================
 // Main Function
 // ===================================
@@ -297,7 +271,7 @@ func Run(opts RunOptions) error {
 				PrintSeatAvailable(courses[i].Name, courses[i].CRN)
 
 				if cfg.Email != "" {
-					sendEmail(cfg.Email, "VT Course Section Open!", fmt.Sprintf("OPEN SEAT: %s (CRN: %s)", courses[i].Name, courses[i].CRN))
+					emailSender.Send(cfg.Email, "VT Course Section Open!", fmt.Sprintf("OPEN SEAT: %s (CRN: %s)", courses[i].Name, courses[i].CRN))
 					PrintEmailSent(cfg.Email)
 				}
 			}
